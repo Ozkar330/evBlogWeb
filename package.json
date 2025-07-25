@@ -22,6 +22,7 @@
     "db:studio": "prisma studio",
     "db:seed": "tsx prisma/seed.ts",
     "build:analyze": "cross-env ANALYZE=true next build",
+    "type-check": "tsc --noEmit",
     "prepare": "husky"
   },
   "dependencies": {

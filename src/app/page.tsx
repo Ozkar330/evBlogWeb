@@ -69,6 +69,7 @@ export default function HomePage() {
         <p className="text-sm text-muted-foreground">
           🚧 Under Development - Wave 1: Foundation & Authentication
         </p>
+        {/* Testing pre-commit hooks */}
         <div className="mt-4 flex items-center justify-center space-x-4 text-xs text-muted-foreground">
           <span className="flex items-center">
             <span className="mr-2 h-2 w-2 rounded-full bg-green-500"></span>
