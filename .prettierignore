@@ -1,0 +1,59 @@
+# Dependencies
+node_modules
+.pnp
+.pnp.js
+
+# Build outputs
+.next
+out
+build
+dist
+
+# Environment files
+.env*
+
+# Logs
+*.log
+
+# Database
+*.sqlite
+*.sqlite3
+*.db
+
+# IDE files
+.vscode
+.idea
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Generated files
+next-env.d.ts
+*.tsbuildinfo
+
+# Package manager lockfiles
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Prisma generated files
+prisma/migrations
+
+# Coverage reports
+coverage
+
+# Test outputs
+test-results
+playwright-report
+
+# Bundle analyzer
+.next-bundle-analyzer
+
+# Documentation
+CHANGELOG.md
+
+# Config files that should maintain their formatting
+*.json
+*.yml
+*.yaml
