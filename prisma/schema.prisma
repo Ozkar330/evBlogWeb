@@ -16,6 +16,7 @@ model User {
   name          String
   avatarUrl     String?  @map("avatar_url")
   bio           String?
+  password      String?  // For email/password authentication
   role          Role     @default(READER)
   emailVerified DateTime? @map("email_verified")
   createdAt     DateTime @default(now()) @map("created_at")

@@ -82,11 +82,13 @@ Stay tuned for more exciting content!`,
   })
 
   // Create a sample comment
-  await prisma.comment.upsert({
-    where: { id: 'sample-comment-id' },
+  const sampleComment = await prisma.comment.upsert({
+    where: { 
+      id: '00000000-0000-0000-0000-000000000001'
+    },
     update: {},
     create: {
-      id: 'sample-comment-id',
+      id: '00000000-0000-0000-0000-000000000001',
       content: 'Great introduction! Looking forward to more posts about web development.',
       postId: samplePost.id,
       authorId: readerUser.id,

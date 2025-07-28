@@ -1,21 +1,21 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   experimental: {
-    typedRoutes: true,
+    // typedRoutes: true, // Temporarily disabled
   },
   images: {
     domains: ['avatars.githubusercontent.com', 'lh3.googleusercontent.com'],
     formats: ['image/webp', 'image/avif'],
   },
-  async redirects() {
-    return [
-      {
-        source: '/auth/signin',
-        destination: '/auth/login',
-        permanent: true,
-      },
-    ]
-  },
+  // async redirects() {
+  //   return [
+  //     {
+  //       source: '/auth/signin',
+  //       destination: '/auth/login',
+  //       permanent: true,
+  //     },
+  //   ]
+  // },
   async headers() {
     return [
       {
