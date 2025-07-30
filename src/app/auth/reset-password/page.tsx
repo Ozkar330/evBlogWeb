@@ -1,36 +1,34 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { signIn } from 'next-auth/react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Github, Mail, Eye, EyeOff, AlertCircle, Loader2, CheckCircle, User } from 'lucide-react'
-import { AuthFormSkeleton, AuthSuccessSkeleton } from '@/components/auth/auth-skeleton'
-import { signupSchema } from '@/lib/auth-utils'
+import { Eye, EyeOff, Loader2, CheckCircle, AlertCircle, Shield } from 'lucide-react'
+import { newPasswordSchema } from '@/lib/auth-utils'
 import { z } from 'zod'
 
-export default function SignUpPage() {
+export default function ResetPasswordPage() {
   const router = useRouter()
-  
+  const searchParams = useSearchParams()
+  const token = searchParams.get('token')
+
   const [isLoading, setIsLoading] = useState(false)
-  const [isPageLoading, setIsPageLoading] = useState(true)
-  const [showPassword, setShowPassword] = useState(false)
-  const [formError, setFormError] = useState('')
   const [success, setSuccess] = useState(false)
+  const [error, setError] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [formData, setFormData] = useState({
-    name: '',
-    email: '',
     password: '',
+    confirmPassword: '',
   })
   const [fieldErrors, setFieldErrors] = useState<{
-    name?: string
-    email?: string
     password?: string
+    confirmPassword?: string
   }>({})
 
   // Password strength indicators
@@ -42,11 +40,11 @@ export default function SignUpPage() {
     special: false,
   })
 
-  // Simulate initial page load
   useEffect(() => {
-    const timer = setTimeout(() => setIsPageLoading(false), 800)
-    return () => clearTimeout(timer)
-  }, [])
+    if (!token) {
+      router.push('/auth/signin')
+    }
+  }, [token, router])
 
   useEffect(() => {
     const password = formData.password
@@ -62,14 +60,24 @@ export default function SignUpPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
-    setFormError('')
+    setError('')
     setFieldErrors({})
 
-    try {
-      // Validate form data
-      const validatedData = signupSchema.parse(formData)
+    // Check if passwords match
+    if (formData.password !== formData.confirmPassword) {
+      setFieldErrors({ confirmPassword: 'Passwords do not match' })
+      setIsLoading(false)
+      return
+    }
 
-      const response = await fetch('/api/auth/signup', {
+    try {
+      // Validate password
+      const validatedData = newPasswordSchema.parse({
+        password: formData.password,
+        token: token!,
+      })
+
+      const response = await fetch('/api/auth/reset-password', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -80,46 +88,29 @@ export default function SignUpPage() {
       const result = await response.json()
 
       if (!response.ok) {
-        throw new Error(result.error || 'Failed to create account')
+        throw new Error(result.error || 'Failed to reset password')
       }
 
       setSuccess(true)
-      // Optionally auto-sign in the user
-      // await signIn('credentials', {
-      //   email: validatedData.email,
-      //   password: validatedData.password,
-      //   redirect: false,
-      // })
-      // router.push('/dashboard')
     } catch (error) {
       if (error instanceof z.ZodError) {
         const errors: { [key: string]: string } = {}
         error.errors.forEach((err) => {
-          if (err.path[0]) {
-            errors[err.path[0] as string] = err.message
+          if (err.path[0] === 'password') {
+            errors.password = err.message
           }
         })
         setFieldErrors(errors)
       } else {
-        setFormError(error instanceof Error ? error.message : 'An unexpected error occurred')
+        setError(error instanceof Error ? error.message : 'An unexpected error occurred')
       }
     } finally {
       setIsLoading(false)
     }
   }
 
-  const handleOAuthSignIn = async (provider: 'github' | 'google') => {
-    setIsLoading(true)
-    try {
-      await signIn(provider, { callbackUrl: '/dashboard' })
-    } catch (error) {
-      setFormError(`Failed to sign up with ${provider}`)
-      setIsLoading(false)
-    }
-  }
-
-  if (isPageLoading) {
-    return <AuthFormSkeleton />
+  if (!token) {
+    return null // Will redirect
   }
 
   if (success) {
@@ -131,10 +122,10 @@ export default function SignUpPage() {
               <CheckCircle className="h-6 w-6 text-green-600" />
             </div>
             <CardTitle className="text-xl font-semibold text-gray-900 mt-4">
-              Account Created Successfully!
+              Password Reset Successful
             </CardTitle>
             <CardDescription className="text-gray-600">
-              Please check your email to verify your account before signing in.
+              Your password has been updated successfully. You can now sign in with your new password.
             </CardDescription>
           </CardHeader>
           <CardFooter className="flex flex-col space-y-3">
@@ -143,11 +134,6 @@ export default function SignUpPage() {
                 Continue to Sign In
               </Link>
             </Button>
-            <div className="text-center text-sm">
-              <Link href="/" className="text-gray-500 hover:text-gray-700 underline">
-                Return to homepage
-              </Link>
-            </div>
           </CardFooter>
         </Card>
       </div>
@@ -162,96 +148,22 @@ export default function SignUpPage() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold text-center">Create your account</CardTitle>
+          <CardTitle className="text-2xl font-bold text-center">Set New Password</CardTitle>
           <CardDescription className="text-center">
-            Get started with your new account
+            Enter your new password below to complete the reset process
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          {formError && (
-            <Alert variant="destructive">
+        <CardContent>
+          {error && (
+            <Alert variant="destructive" className="mb-4">
               <AlertCircle className="h-4 w-4" />
-              <AlertDescription>{formError}</AlertDescription>
+              <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
 
-          {/* OAuth Providers */}
-          <div className="space-y-2">
-            <Button
-              variant="outline"
-              onClick={() => handleOAuthSignIn('github')}
-              disabled={isLoading}
-              className="w-full"
-            >
-              {isLoading ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <Github className="mr-2 h-4 w-4" />
-              )}
-              Continue with GitHub
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => handleOAuthSignIn('google')}
-              disabled={isLoading}
-              className="w-full"
-            >
-              {isLoading ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <Mail className="mr-2 h-4 w-4" />
-              )}
-              Continue with Google
-            </Button>
-          </div>
-
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-background px-2 text-muted-foreground">Or continue with</span>
-            </div>
-          </div>
-
-          {/* Email/Password Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="name">Full Name</Label>
-              <Input
-                id="name"
-                name="name"
-                type="text"
-                autoComplete="name"
-                required
-                value={formData.name}
-                onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                className={fieldErrors.name ? 'border-red-500' : ''}
-                disabled={isLoading}
-              />
-              {fieldErrors.name && (
-                <p className="text-sm text-red-500">{fieldErrors.name}</p>
-              )}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                name="email"
-                type="email"
-                autoComplete="email"
-                required
-                value={formData.email}
-                onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                className={fieldErrors.email ? 'border-red-500' : ''}
-                disabled={isLoading}
-              />
-              {fieldErrors.email && (
-                <p className="text-sm text-red-500">{fieldErrors.email}</p>
-              )}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">New Password</Label>
               <div className="relative">
                 <Input
                   id="password"
@@ -273,14 +185,16 @@ export default function SignUpPage() {
                   aria-label={showPassword ? 'Hide password' : 'Show password'}
                 >
                   {showPassword ? (
-                    <EyeOff className="h-4 w-4 text-gray-400" aria-hidden="true" />
+                    <EyeOff className="h-4 w-4 text-gray-400" />
                   ) : (
-                    <Eye className="h-4 w-4 text-gray-400" aria-hidden="true" />
+                    <Eye className="h-4 w-4 text-gray-400" />
                   )}
                 </button>
               </div>
               {fieldErrors.password && (
-                <p className="text-sm text-red-500" role="alert">{fieldErrors.password}</p>
+                <p className="text-sm text-red-500" role="alert">
+                  {fieldErrors.password}
+                </p>
               )}
               
               {/* Password Strength Indicator */}
@@ -309,63 +223,85 @@ export default function SignUpPage() {
                 <p className="text-gray-600 font-medium">Password must contain:</p>
                 <ul className="space-y-1 ml-2">
                   <li className={`flex items-center ${passwordStrength.length ? 'text-green-600' : 'text-gray-500'}`}>
-                    <span className="mr-2" aria-hidden="true">{passwordStrength.length ? '✓' : '○'}</span>
+                    <span className="mr-2">{passwordStrength.length ? '✓' : '○'}</span>
                     At least 8 characters
                   </li>
                   <li className={`flex items-center ${passwordStrength.uppercase ? 'text-green-600' : 'text-gray-500'}`}>
-                    <span className="mr-2" aria-hidden="true">{passwordStrength.uppercase ? '✓' : '○'}</span>
+                    <span className="mr-2">{passwordStrength.uppercase ? '✓' : '○'}</span>
                     One uppercase letter
                   </li>
                   <li className={`flex items-center ${passwordStrength.lowercase ? 'text-green-600' : 'text-gray-500'}`}>
-                    <span className="mr-2" aria-hidden="true">{passwordStrength.lowercase ? '✓' : '○'}</span>
+                    <span className="mr-2">{passwordStrength.lowercase ? '✓' : '○'}</span>
                     One lowercase letter
                   </li>
                   <li className={`flex items-center ${passwordStrength.number ? 'text-green-600' : 'text-gray-500'}`}>
-                    <span className="mr-2" aria-hidden="true">{passwordStrength.number ? '✓' : '○'}</span>
+                    <span className="mr-2">{passwordStrength.number ? '✓' : '○'}</span>
                     One number
                   </li>
                   <li className={`flex items-center ${passwordStrength.special ? 'text-green-600' : 'text-gray-500'}`}>
-                    <span className="mr-2" aria-hidden="true">{passwordStrength.special ? '✓' : '○'}</span>
+                    <span className="mr-2">{passwordStrength.special ? '✓' : '○'}</span>
                     One special character
                   </li>
                 </ul>
               </div>
             </div>
-            <Button 
-              type="submit" 
-              className="w-full" 
-              disabled={isLoading || (!!formData.password && strengthScore < 5)}
-            >
+
+            <div className="space-y-2">
+              <Label htmlFor="confirmPassword">Confirm New Password</Label>
+              <div className="relative">
+                <Input
+                  id="confirmPassword"
+                  name="confirmPassword"
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  autoComplete="new-password"
+                  required
+                  value={formData.confirmPassword}
+                  onChange={(e) => setFormData(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                  className={fieldErrors.confirmPassword ? 'border-red-500 pr-10' : 'pr-10'}
+                  disabled={isLoading}
+                  aria-describedby={fieldErrors.confirmPassword ? "confirm-password-error" : undefined}
+                />
+                <button
+                  type="button"
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  disabled={isLoading}
+                  aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showConfirmPassword ? (
+                    <EyeOff className="h-4 w-4 text-gray-400" />
+                  ) : (
+                    <Eye className="h-4 w-4 text-gray-400" />
+                  )}
+                </button>
+              </div>
+              {fieldErrors.confirmPassword && (
+                <p id="confirm-password-error" className="text-sm text-red-500" role="alert">
+                  {fieldErrors.confirmPassword}
+                </p>
+              )}
+            </div>
+
+            <Button type="submit" className="w-full" disabled={isLoading || strengthScore < 5}>
               {isLoading ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
-                  Creating account...
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Updating Password...
                 </>
               ) : (
                 <>
-                  <User className="mr-2 h-4 w-4" aria-hidden="true" />
-                  Create account
+                  <Shield className="mr-2 h-4 w-4" />
+                  Update Password
                 </>
               )}
             </Button>
           </form>
         </CardContent>
-        <CardFooter className="flex flex-col space-y-2">
-          <div className="text-center text-sm">
-            Already have an account?{' '}
+        <CardFooter className="text-center">
+          <div className="text-sm text-gray-500">
             <Link href="/auth/signin" className="text-primary hover:underline">
-              Sign in
+              Back to Sign In
             </Link>
-          </div>
-          <div className="text-center text-xs text-gray-500">
-            By creating an account, you agree to our{' '}
-            <a href="/terms" className="underline hover:text-gray-700">
-              Terms of Service
-            </a>{' '}
-            and{' '}
-            <a href="/privacy" className="underline hover:text-gray-700">
-              Privacy Policy
-            </a>
           </div>
         </CardFooter>
       </Card>

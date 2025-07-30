@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { signIn, getSession } from 'next-auth/react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
@@ -9,7 +9,8 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Github, Mail, Eye, EyeOff, AlertCircle, Loader2 } from 'lucide-react'
+import { Github, Mail, Eye, EyeOff, AlertCircle, Loader2, CheckCircle } from 'lucide-react'
+import { AuthFormSkeleton } from '@/components/auth/auth-skeleton'
 import { loginSchema } from '@/lib/auth-utils'
 import { z } from 'zod'
 
@@ -18,8 +19,10 @@ export default function SignInPage() {
   const searchParams = useSearchParams()
   const callbackUrl = searchParams.get('callbackUrl') || '/dashboard'
   const error = searchParams.get('error')
+  const message = searchParams.get('message')
   
   const [isLoading, setIsLoading] = useState(false)
+  const [isPageLoading, setIsPageLoading] = useState(true)
   const [showPassword, setShowPassword] = useState(false)
   const [formError, setFormError] = useState('')
   const [formData, setFormData] = useState({
@@ -30,6 +33,12 @@ export default function SignInPage() {
     email?: string
     password?: string
   }>({})
+
+  // Simulate initial page load
+  useEffect(() => {
+    const timer = setTimeout(() => setIsPageLoading(false), 800)
+    return () => clearTimeout(timer)
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -99,6 +108,10 @@ export default function SignInPage() {
 
   const errorMessage = getErrorMessage(error)
 
+  if (isPageLoading) {
+    return <AuthFormSkeleton />
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <Card className="w-full max-w-md">
@@ -109,6 +122,15 @@ export default function SignInPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          {message === 'verified' && (
+            <Alert className="border-green-200 bg-green-50">
+              <CheckCircle className="h-4 w-4 text-green-600" />
+              <AlertDescription className="text-green-800">
+                Email verified successfully! You can now sign in.
+              </AlertDescription>
+            </Alert>
+          )}
+          
           {(errorMessage || formError) && (
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
@@ -125,11 +147,12 @@ export default function SignInPage() {
               onClick={() => handleOAuthSignIn('github')}
               disabled={isLoading}
               className="w-full"
+              aria-label="Sign in with GitHub"
             >
               {isLoading ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
               ) : (
-                <Github className="mr-2 h-4 w-4" />
+                <Github className="mr-2 h-4 w-4" aria-hidden="true" />
               )}
               Continue with GitHub
             </Button>
@@ -138,11 +161,12 @@ export default function SignInPage() {
               onClick={() => handleOAuthSignIn('google')}
               disabled={isLoading}
               className="w-full"
+              aria-label="Sign in with Google"
             >
               {isLoading ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
               ) : (
-                <Mail className="mr-2 h-4 w-4" />
+                <Mail className="mr-2 h-4 w-4" aria-hidden="true" />
               )}
               Continue with Google
             </Button>
@@ -195,11 +219,12 @@ export default function SignInPage() {
                   className="absolute inset-y-0 right-0 pr-3 flex items-center"
                   onClick={() => setShowPassword(!showPassword)}
                   disabled={isLoading}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
                 >
                   {showPassword ? (
-                    <EyeOff className="h-4 w-4 text-gray-400" />
+                    <EyeOff className="h-4 w-4 text-gray-400" aria-hidden="true" />
                   ) : (
-                    <Eye className="h-4 w-4 text-gray-400" />
+                    <Eye className="h-4 w-4 text-gray-400" aria-hidden="true" />
                   )}
                 </button>
               </div>
